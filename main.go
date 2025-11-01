@@ -10,5 +10,5 @@ func main() {
 	argsWithProg := os.Args
     fmt.Println(argsWithProg)
 	// tasks.TestWrite()
-	tasks.TestRead()
+	tasks.AddTask("this is a task")
 }

@@ -12,7 +12,73 @@ var ErrNotAJson = errors.New("provided path is not a json path")
 
 type Storable interface {
     GetID() int
+    SetID(id int)
 }
+
+type Database[T Storable] struct {
+    path string
+    file *os.File
+}
+
+func (db *Database[T]) Open() {
+    db.file = GetOrCreate(db.path)
+}
+
+func (db *Database[T]) Close() {
+    db.file.Close()
+}
+
+func (db *Database[T]) Append(item T) {
+    fmt.Println("appending item ",item)
+    items := db.GetAll()
+    fmt.Println(items)
+    lastId := 1
+    for _,other := range items {
+        if other.GetID() > lastId {
+            lastId = other.GetID()
+        }
+    }
+
+    item.SetID(lastId + 1)
+    items = append(items, item)
+    db.WriteAll(items)
+}
+
+func (db *Database[T]) GetAll() []T {
+    decoder := json.NewDecoder(db.file)
+    // decoder.Token()
+
+    // data := T
+    var data T
+    entries := []T{}
+
+    for decoder.More() {
+        err := decoder.Decode(&data)
+        if err != nil {
+            panic(err)
+        }
+        fmt.Println(data)
+        
+        entries = append(entries, data)
+    }
+    return entries
+}
+
+func (db *Database[T]) WriteAll(items []T) {
+    fmt.Println("Writing items", items)
+    for _,item := range items {
+        data, err := json.Marshal(item)
+        if err != nil {
+            panic(err)
+        }
+
+        _, err = db.file.Write(data)
+        if err != nil {
+            panic(err)
+        }
+    }
+}
+
 
 func IsValidPath(pth string) error {
     if strings.Contains(pth, ".json") {
@@ -53,7 +119,7 @@ func CreateDb(customPath string) (*os.File, error){
 }
 
 func GetDb(customPath string) *os.File {
-    file, err := os.Open(customPath)
+    file, err := os.OpenFile(customPath,os.O_CREATE| os.O_RDWR, 0644)
     if err != nil {
         panic(err)
     }
@@ -72,7 +138,6 @@ func GetOrCreate(customPath string) *os.File {
     } else {
         file = GetDb(customPath)
     }
-
     return file
 }
 

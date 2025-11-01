@@ -3,6 +3,7 @@ package tasks
 import (
 	"backend/jsondatabase"
 	"fmt"
+	"time"
 )
 
 type TaskStatus int
@@ -25,13 +26,34 @@ func (task Task) GetID() int {
 	return task.ID
 }
 
+func (task Task) SetID(id int) {
+	fmt.Println("set id",id,"for task",task.Description)
+	task.ID = id
+}
+
 func TestWrite() {
 	test_task := Task{0,"hello",0,"",""}
 	jsondatabase.Insert(test_task)
 }
 
 func TestRead() {
-	task := jsondatabase.FindByID2[Task](0)
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
 
-	fmt.Println(task)
+	tasks := db.GetAll()
+
+	fmt.Println(tasks)
+}
+
+func AddTask(description string) {
+	var newTask Task
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	newTask.Description = description
+	newTask.CreatedAt = time.Now().String()
+
+	db.Append(newTask)
 }
