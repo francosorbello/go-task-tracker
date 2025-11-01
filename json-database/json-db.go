@@ -3,7 +3,6 @@ package jsondatabase
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -29,9 +28,7 @@ func (db *Database[T]) Close() {
 }
 
 func (db *Database[T]) Append(item T) {
-    fmt.Println("appending item ",item)
     items := db.GetAll()
-    fmt.Println(items)
     lastId := 1
     for _,other := range items {
         if other.GetID() > lastId {
@@ -57,7 +54,6 @@ func (db *Database[T]) GetAll() []T {
         if err != nil {
             panic(err)
         }
-        fmt.Println(data)
         
         entries = append(entries, data)
     }
@@ -65,7 +61,6 @@ func (db *Database[T]) GetAll() []T {
 }
 
 func (db *Database[T]) WriteAll(items []T) {
-    fmt.Println("Writing items", items)
     for _,item := range items {
         data, err := json.Marshal(item)
         if err != nil {
@@ -174,7 +169,6 @@ func FindByID(id int) map[string]any {
             return data   
         }
     }
-    fmt.Println("finished")
     return nil
 }
 

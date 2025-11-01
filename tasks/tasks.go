@@ -27,7 +27,6 @@ func (task Task) GetID() int {
 }
 
 func (task Task) SetID(id int) {
-	fmt.Println("set id",id,"for task",task.Description)
 	task.ID = id
 }
 
