@@ -3,6 +3,7 @@ package tasks
 import (
 	"backend/jsondatabase"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -54,6 +55,19 @@ func AddTask(description string) Task {
 	return db.Append(newTask)
 }
 
+func findTaskIndex(id int, tasks []Task) int {
+	index := -1
+
+	for i,t := range tasks {
+		if t.GetID() == id {
+			index = i
+			break
+		}
+	}
+
+	return index
+}
+
 func UpdateTask(id int, description string) {
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -61,12 +75,7 @@ func UpdateTask(id int, description string) {
 
 	tasks := db.GetAll()
 	
-	taskToUpdate := -1 
-	for i,t := range tasks {
-		if t.GetID() == id {
-			taskToUpdate = i
-		}
-	}
+	taskToUpdate := findTaskIndex(id, tasks)
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Description = description
@@ -75,3 +84,25 @@ func UpdateTask(id int, description string) {
 		panic(fmt.Sprintf("no task with id %d available",id))
 	}
 }
+
+func DeleteTask(id int) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	tasks := db.GetAll()
+
+	taskToDelete := findTaskIndex(id, tasks)
+
+	if taskToDelete != -1 {
+		tasks = slices.Delete(tasks,taskToDelete,taskToDelete+1)
+		fmt.Println(tasks)
+		if len(tasks) == 0 {
+			db.Clear()
+		}else {
+			db.WriteAll(tasks)
+		}
+	} else {
+		panic(fmt.Sprintf("no task with id %d available",id))
+	}
+} 

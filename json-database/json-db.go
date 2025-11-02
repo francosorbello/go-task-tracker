@@ -64,7 +64,6 @@ func (db *Database[T]) GetAll() []T {
         if err != nil {
             panic(err)
         }
-        fmt.Println("entry:",entries) 
     }
 
     return entries
@@ -75,10 +74,18 @@ func (db *Database[T]) WriteAll(items []T) {
     if err != nil {
         panic(err)
     }
+    db.Clear()
     _,err = db.file.WriteAt(data,0)
     if err != nil {
         panic(err)
     }
+}
+
+func (db *Database[T]) Clear() {
+    if db.path == "" {
+        db.path = "db.json"
+    }
+    os.Truncate(db.path,0)
 }
 
 

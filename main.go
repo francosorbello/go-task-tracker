@@ -61,6 +61,18 @@ func (com *UpdateCommand) Execute(args []string) {
 	tasks.UpdateTask(taskId,desc)
 }
 
+type DeleteCommand Command
+
+func (com *DeleteCommand) Verify(args []string) error{
+	err := validateArgs("add",com.argNumber,len(args))
+	
+	return err		
+}
+
+func (com *DeleteCommand) Execute(args []string) {
+	taskId,_ := strconv.Atoi(args[0])
+	tasks.DeleteTask(taskId)
+}
 
 func main() {
 	receivedArgs := os.Args[1:]
@@ -75,6 +87,8 @@ func main() {
 		comm = &AddCommand{1}
 	case "update":
 		comm = &UpdateCommand{2}
+	case "delete":
+		comm = &DeleteCommand{1}
 	default:
 		panic(errors.New("No command named "+commName))
 	}
