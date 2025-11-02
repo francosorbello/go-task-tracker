@@ -26,8 +26,9 @@ func (task Task) GetID() int {
 	return task.ID
 }
 
-func (task Task) SetID(id int) {
+func (task Task) SetID(id int) jsondatabase.Storable{
 	task.ID = id
+	return task
 }
 
 

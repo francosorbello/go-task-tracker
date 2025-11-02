@@ -20,7 +20,7 @@ var ErrNotAJsonOld = errors.New("provided path is not a json path")
 
 type Storable interface {
     GetID() int
-    SetID(id int)
+    SetID(id int) Storable
 }
 
 type Database[T Storable] struct {
@@ -49,8 +49,8 @@ func (db *Database[T]) Append(item T) {
         }
     }
 
-    item.SetID(lastId + 1)
-    items = append(items, item)
+    modifiedItem := item.SetID(lastId + 1)
+    items = append(items, modifiedItem.(T))
     db.WriteAll(items)
 }
 
