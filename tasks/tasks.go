@@ -15,6 +15,18 @@ const(
 	Done
 )
 
+func StatusNameToValue(name string) TaskStatus {
+	switch name {
+	case "todo":
+		return Todo
+	case "done":
+		return Done
+	case "in-progress":
+		return InProgress
+	}
+	return -1
+}
+
 type Task struct {
 	ID int
 	Description string
@@ -137,5 +149,22 @@ func ChangeTaskStatus(id int, newStatus TaskStatus) {
 		db.WriteAll(tasks)
 	} else {
 		panic(fmt.Sprintf("no task with id %d available",id))
+	}
+}
+
+func ListTasks(status int) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+	
+	tasks := db.GetAll()
+	for _,task := range tasks {
+		if status == -1 {
+			fmt.Println(task)
+		} else {
+			if task.Status == TaskStatus(status) {
+				fmt.Println(task)
+			}
+		}
 	}
 }

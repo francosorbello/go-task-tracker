@@ -19,7 +19,7 @@ func (e *InvalidArgNumberError) Error() string{
 }
 
 func validateArgs(commandName string, expected int, received int) error {
-	if (received == 0) || (expected != received) {
+	if (expected != received) {
 		return &InvalidArgNumberError{commandName,expected, received}
 	}
 	return nil
@@ -100,14 +100,48 @@ func (com *UpdateStatusCommand) Execute(args []string) {
 	tasks.UpdateTaskStatus(taskId,status)
 }
 
+type ListCommand Command
+
+func (com *ListCommand) Verify(args []string) error{
+	err := validateArgs("list",com.argNumber,len(args))
+	if err != nil {
+		return err
+	}
+
+	if com.argNumber == 1 {
+		statusArg := args[0]
+		if statusArg != "todo" && statusArg !="in-progress" && statusArg != "done" {
+			return fmt.Errorf("invalid action for list command. Expected, todo, in-progress or done. Received %s",statusArg)
+		}
+	}	
+
+	return nil
+}
+
+func (com *ListCommand) Execute(args []string) {
+	status := -1
+	if com.argNumber == 1 {
+		statusName := args[0]
+		status = int(tasks.StatusNameToValue(statusName))
+		fmt.Println("==",statusName,"==")
+	} else {
+		fmt.Println("== All tasks ==")
+	}
+	tasks.ListTasks(status)
+	fmt.Println("====")
+}
+
+
 func main() {
 	receivedArgs := os.Args[1:]
 	if len(receivedArgs) == 0 {
 		panic(errors.New("no command"))
 	}
+
 	commName := receivedArgs[0]
 	var comm Executable
 	commandData := map[string]any{}
+	
 	switch commName {
 	case "add":
 		comm = &AddCommand{1,commandData}
@@ -121,12 +155,21 @@ func main() {
 	case "mark-done":
 		commandData["status"] = tasks.Done 
 		comm = &UpdateStatusCommand{1,commandData}
+	case "list":
+		if len(receivedArgs) > 1 {
+			comm = &ListCommand{1,commandData}
+		} else {
+			comm = &ListCommand{0,commandData}
+		}
 	default:
 		panic(errors.New("no command named "+commName))
 	}
+
 	err := comm.Verify(receivedArgs[1:])
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		return
 	}
+
 	comm.Execute(receivedArgs[1:])
 }
