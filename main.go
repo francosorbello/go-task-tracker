@@ -27,6 +27,7 @@ func validateArgs(commandName string, expected int, received int) error {
 
 type Command struct {
 	argNumber int
+	data  map[string]any
 }
 
 type Executable interface {
@@ -50,7 +51,7 @@ func (com *AddCommand) Execute(args []string) {
 type UpdateCommand Command
 
 func (com *UpdateCommand) Verify(args []string) error{
-	err := validateArgs("add",com.argNumber,len(args))
+	err := validateArgs("update",com.argNumber,len(args))
 	
 	return err		
 }
@@ -64,7 +65,7 @@ func (com *UpdateCommand) Execute(args []string) {
 type DeleteCommand Command
 
 func (com *DeleteCommand) Verify(args []string) error{
-	err := validateArgs("add",com.argNumber,len(args))
+	err := validateArgs("delete",com.argNumber,len(args))
 	
 	return err		
 }
@@ -74,6 +75,31 @@ func (com *DeleteCommand) Execute(args []string) {
 	tasks.DeleteTask(taskId)
 }
 
+type UpdateStatusCommand Command
+
+func (com *UpdateStatusCommand) Verify(args []string) error{
+	err := validateArgs("update status",com.argNumber,len(args))
+	if err != nil {
+		return err
+	}
+	status, ok := com.data["status"].(tasks.TaskStatus)
+	if !ok {
+		return errors.New("command data doesnt have a status entry")
+	}
+	if status > tasks.Done {
+		return errors.New(fmt.Sprintf("invalid status. Received %d, expected %s or %s",status,tasks.InProgress,tasks.Done))
+	}
+
+	return nil		
+}
+
+func (com *UpdateStatusCommand) Execute(args []string) {
+	taskId,_ := strconv.Atoi(args[0])
+	status := com.data["status"].(tasks.TaskStatus)
+	
+	tasks.UpdateTaskStatus(taskId,status)
+}
+
 func main() {
 	receivedArgs := os.Args[1:]
 	if len(receivedArgs) == 0 {
@@ -81,16 +107,22 @@ func main() {
 	}
 	commName := receivedArgs[0]
 	var comm Executable
-	
+	commandData := map[string]any{}
 	switch commName {
 	case "add":
-		comm = &AddCommand{1}
+		comm = &AddCommand{1,commandData}
 	case "update":
-		comm = &UpdateCommand{2}
+		comm = &UpdateCommand{2,commandData}
 	case "delete":
-		comm = &DeleteCommand{1}
+		comm = &DeleteCommand{1,commandData}
+	case "mark-in-progress":
+		commandData["status"] = tasks.InProgress 
+		comm = &UpdateStatusCommand{1,commandData}
+	case "mark-done":
+		commandData["status"] = tasks.Done 
+		comm = &UpdateStatusCommand{1,commandData}
 	default:
-		panic(errors.New("No command named "+commName))
+		panic(errors.New("no command named "+commName))
 	}
 	err := comm.Verify(receivedArgs[1:])
 	if err != nil {

@@ -85,6 +85,23 @@ func UpdateTask(id int, description string) {
 	}
 }
 
+func UpdateTaskStatus(id int, status TaskStatus) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	tasks := db.GetAll()
+	
+	taskToUpdate := findTaskIndex(id, tasks)
+
+	if taskToUpdate != -1 {
+		tasks[taskToUpdate].Status = status
+		db.WriteAll(tasks)
+	} else {
+		panic(fmt.Sprintf("no task with id %d available",id))
+	}
+}
+
 func DeleteTask(id int) {
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -96,7 +113,6 @@ func DeleteTask(id int) {
 
 	if taskToDelete != -1 {
 		tasks = slices.Delete(tasks,taskToDelete,taskToDelete+1)
-		fmt.Println(tasks)
 		if len(tasks) == 0 {
 			db.Clear()
 		}else {
@@ -106,3 +122,20 @@ func DeleteTask(id int) {
 		panic(fmt.Sprintf("no task with id %d available",id))
 	}
 } 
+
+func ChangeTaskStatus(id int, newStatus TaskStatus) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	tasks := db.GetAll()
+
+	taskToUpdate := findTaskIndex(id, tasks)
+
+	if taskToUpdate != -1 {
+		tasks[taskToUpdate].Status = newStatus
+		db.WriteAll(tasks)
+	} else {
+		panic(fmt.Sprintf("no task with id %d available",id))
+	}
+}
