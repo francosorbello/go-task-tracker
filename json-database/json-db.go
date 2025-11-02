@@ -3,11 +3,20 @@ package jsondatabase
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
 
-var ErrNotAJson = errors.New("provided path is not a json path")
+type NotAJsonError struct {
+    filename string
+}
+
+func (e *NotAJsonError) Error() string {
+    return fmt.Sprintf("File %s is not a json file",e.filename)
+}
+
+var ErrNotAJsonOld = errors.New("provided path is not a json path")
 
 type Storable interface {
     GetID() int
@@ -20,17 +29,21 @@ type Database[T Storable] struct {
 }
 
 func (db *Database[T]) Open() {
-    db.file = GetOrCreate(db.path)
+    fmt.Println("Opening db")
+    db.file = getDb(db.path)
 }
 
 func (db *Database[T]) Close() {
+    fmt.Println("Closing database")
     db.file.Close()
 }
 
 func (db *Database[T]) Append(item T) {
     items := db.GetAll()
-    lastId := 1
+    fmt.Println("Appending item",item, "to list",items)
+    lastId := 0
     for _,other := range items {
+        fmt.Println(other.GetID())
         if other.GetID() > lastId {
             lastId = other.GetID()
         }
@@ -45,153 +58,52 @@ func (db *Database[T]) GetAll() []T {
     decoder := json.NewDecoder(db.file)
     // decoder.Token()
 
-    // data := T
-    var data T
     entries := []T{}
 
     for decoder.More() {
-        err := decoder.Decode(&data)
+        err := decoder.Decode(&entries)
         if err != nil {
             panic(err)
         }
-        
-        entries = append(entries, data)
+        fmt.Println("entry:",entries) 
     }
+
     return entries
 }
 
 func (db *Database[T]) WriteAll(items []T) {
-    for _,item := range items {
-        data, err := json.Marshal(item)
-        if err != nil {
-            panic(err)
-        }
-
-        _, err = db.file.Write(data)
-        if err != nil {
-            panic(err)
-        }
+    fmt.Println("Writing items",items)
+    data,err := json.MarshalIndent(items,"","    ")
+    if err != nil {
+        panic(err)
+    }
+    _,err = db.file.WriteAt(data,0)
+    if err != nil {
+        panic(err)
     }
 }
 
 
-func IsValidPath(pth string) error {
+func isValidPath(pth string) error {
     if strings.Contains(pth, ".json") {
         return nil
     }
-    return ErrNotAJson
+    return &NotAJsonError{pth}
 }
 
-func DbExists(dbName string) bool {
-    _, err := os.Stat(dbName)
-    if err != nil {
-        if errors.Is(err, os.ErrNotExist) {
-            return false
-        }
-        panic(err)
-    }
 
-    return true
-}
-
-func CreateDb(customPath string) (*os.File, error){	
-    pth := ""
-    if customPath == "" {
-        pth = "db.json"
-    } else {
-        err := IsValidPath(customPath)
-        if err != nil && errors.Is(err, ErrNotAJson) {
-            customPath += ".json"
-        }
-        pth = customPath
-    }
-    file, err := os.Create(pth)
-    if err != nil {
-        return nil,err
-    }
-
-    return file,nil
-}
-
-func GetDb(customPath string) *os.File {
-    file, err := os.OpenFile(customPath,os.O_CREATE| os.O_RDWR, 0644)
-    if err != nil {
-        panic(err)
-    }
-    return file
-}
-
-func GetOrCreate(customPath string) *os.File {
+func getDb(customPath string) *os.File {
     if customPath == "" {
         customPath = "db.json"
-    }
-    
-    var file *os.File
-
-    if !DbExists(customPath) {
-        file,_ = CreateDb(customPath)
     } else {
-        file = GetDb(customPath)
+       err := isValidPath(customPath)
+        if err != nil {
+            panic(err)
+        } 
     }
-    return file
-}
-
-func Insert(item any) {
-    var data,err = json.Marshal(item)
-
+    file, err := os.OpenFile(customPath,os.O_RDWR|os.O_CREATE, 0644)
     if err != nil {
         panic(err)
-    } 
-
-    file := GetOrCreate("") 
-    defer file.Close()
-
-    file.Write(data)
-}
-
-func FindByID(id int) map[string]any {
-    var file = GetOrCreate("")
-    defer file.Close()
-
-    decoder := json.NewDecoder(file)
-    // decoder.Token()
-
-    data := map[string]any{}
-
-    for decoder.More() {
-        err := decoder.Decode(&data)
-        if err != nil {
-            panic(err)
-        }
-        
-        value, ok := data["ID"]
-        if ok && value == id {
-            return data   
-        }
     }
-    return nil
-}
-
-func FindByID2[T Storable] (id int) Storable {
-    var file = GetOrCreate("")
-    defer file.Close()
-
-    decoder := json.NewDecoder(file)
-    // decoder.Token()
-
-    // data := T
-    var data T
-
-    for decoder.More() {
-        err := decoder.Decode(&data)
-        if err != nil {
-            panic(err)
-        }
-        
-        value := data.GetID()
-        if value == id {
-            return data   
-        }
-    }
-    return nil
+    return file
 }

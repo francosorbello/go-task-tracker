@@ -30,10 +30,6 @@ func (task Task) SetID(id int) {
 	task.ID = id
 }
 
-func TestWrite() {
-	test_task := Task{0,"hello",0,"",""}
-	jsondatabase.Insert(test_task)
-}
 
 func TestRead() {
 	var db jsondatabase.Database[Task]
