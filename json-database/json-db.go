@@ -29,29 +29,28 @@ type Database[T Storable] struct {
 }
 
 func (db *Database[T]) Open() {
-    fmt.Println("Opening db")
     db.file = getDb(db.path)
 }
 
 func (db *Database[T]) Close() {
-    fmt.Println("Closing database")
     db.file.Close()
 }
 
-func (db *Database[T]) Append(item T) {
+func (db *Database[T]) Append(item T) T {
     items := db.GetAll()
-    fmt.Println("Appending item",item, "to list",items)
     lastId := 0
     for _,other := range items {
-        fmt.Println(other.GetID())
         if other.GetID() > lastId {
             lastId = other.GetID()
         }
     }
 
+    // TODO: this creates a new copy of the task.
+    // Ideally, we would set the id using pointers.
     modifiedItem := item.SetID(lastId + 1)
     items = append(items, modifiedItem.(T))
     db.WriteAll(items)
+    return modifiedItem.(T)
 }
 
 func (db *Database[T]) GetAll() []T {
@@ -72,7 +71,6 @@ func (db *Database[T]) GetAll() []T {
 }
 
 func (db *Database[T]) WriteAll(items []T) {
-    fmt.Println("Writing items",items)
     data,err := json.MarshalIndent(items,"","    ")
     if err != nil {
         panic(err)

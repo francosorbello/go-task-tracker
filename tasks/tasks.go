@@ -42,7 +42,7 @@ func TestRead() {
 	fmt.Println(tasks)
 }
 
-func AddTask(description string) {
+func AddTask(description string) Task {
 	var newTask Task
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -51,5 +51,27 @@ func AddTask(description string) {
 	newTask.Description = description
 	newTask.CreatedAt = time.Now().String()
 
-	db.Append(newTask)
+	return db.Append(newTask)
+}
+
+func UpdateTask(id int, description string) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	tasks := db.GetAll()
+	
+	taskToUpdate := -1 
+	for i,t := range tasks {
+		if t.GetID() == id {
+			taskToUpdate = i
+		}
+	}
+
+	if taskToUpdate != -1 {
+		tasks[taskToUpdate].Description = description
+		db.WriteAll(tasks)
+	} else {
+		panic(fmt.Sprintf("no task with id %d available",id))
+	}
 }
