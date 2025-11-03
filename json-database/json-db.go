@@ -82,7 +82,7 @@ func (db *Database[T]) GetAll() ([]T,error) {
 func (db *Database[T]) WriteAll(items []T) error {
 	data, marshallErr := json.MarshalIndent(items, "", "    ")
 	if marshallErr != nil {
-		panic(marshallErr)
+        return marshallErr
 	}
 
 	clearErr := db.Clear()

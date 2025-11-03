@@ -153,7 +153,8 @@ func (com *ListCommand) Execute(args []string) error {
 func main() {
 	receivedArgs := os.Args[1:]
 	if len(receivedArgs) == 0 {
-		panic(errors.New("no command"))
+		fmt.Println("No commands received")
+		return
 	}
 
 	commName := receivedArgs[0]
@@ -181,7 +182,8 @@ func main() {
 			comm = &ListCommand{0, commandData}
 		}
 	default:
-		panic(errors.New("no command named " + commName))
+		fmt.Println("no command named " + commName)
+		return
 	}
 
 	err = comm.Verify(receivedArgs[1:])
@@ -190,5 +192,9 @@ func main() {
 		return
 	}
 
-	comm.Execute(receivedArgs[1:])
+	err = comm.Execute(receivedArgs[1:])
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 }
