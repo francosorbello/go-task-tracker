@@ -146,7 +146,32 @@ func (com *ListCommand) Execute(args []string) error {
 		return err
 	}
 	fmt.Println("====")
-	
+
+	return nil
+}
+
+type HelpCommand Command
+
+func (com *HelpCommand) Verify(args []string) error {
+	err := validateArgs("list", com.argNumber, len(args))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (com *HelpCommand) Execute(args []string) error {
+	fmt.Println("== Commands ==")
+	fmt.Println(" list                              - lists all tasks")
+	fmt.Println(" list [todo | in-progress | done]  - lists all tasks in a particular status")
+	fmt.Println(" add [description]                 - adds a task to the todo list")
+	fmt.Println(" delete [id]                       - removes a task")
+	fmt.Println(" update [id] [description]         - updates the description of a task")
+	fmt.Println(" mark-in-progress [id]             - sets a task status as in progress")
+	fmt.Println(" mark-done [id]                    - sets a task status as done")
+	fmt.Println(" help                              - shows info for each command")
+	fmt.Println("====")
 	return nil
 }
 
@@ -181,6 +206,8 @@ func main() {
 		} else {
 			comm = &ListCommand{0, commandData}
 		}
+	case "help":
+		comm = &HelpCommand{0, commandData}
 	default:
 		fmt.Println("no command named " + commName)
 		return
