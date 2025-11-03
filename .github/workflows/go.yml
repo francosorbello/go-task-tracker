@@ -15,14 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - run: ls
-    - run: ls ./tasks
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.25.3'
+        
+    - run: go env
 
     - name: Build
       run: go build -v .
