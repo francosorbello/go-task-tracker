@@ -44,8 +44,20 @@ func (task Task) SetID(id int) jsondatabase.Storable {
 	return task
 }
 
+func (task Task) String() string {
+	var statusName string
+	switch task.Status {
+	case Todo:
+		statusName = "TO DO"
+	case InProgress:
+		statusName = "IN PROGRESS"
+	case Done:
+		statusName = "DONE"
+	}
+	return fmt.Sprintf("{ID: %d | description: %s | status: %s}", task.ID, task.Description, statusName)
+}
 
-func AddTask(description string) (Task,error) {
+func AddTask(description string) (Task, error) {
 	var newTask Task
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -75,7 +87,7 @@ func UpdateTask(id int, description string) error {
 	db.Open()
 	defer db.Close()
 
-	tasks,getErr := db.GetAll()
+	tasks, getErr := db.GetAll()
 	if getErr != nil {
 		return getErr
 	}
@@ -84,6 +96,7 @@ func UpdateTask(id int, description string) error {
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Description = description
+		setUpdatedDate(&tasks[taskToUpdate])
 		writeErr := db.WriteAll(tasks)
 		if writeErr != nil {
 			return writeErr
@@ -100,7 +113,7 @@ func UpdateTaskStatus(id int, status TaskStatus) error {
 		return openErr
 	}
 
-	tasks,getErr := db.GetAll()
+	tasks, getErr := db.GetAll()
 	if getErr != nil {
 		return getErr
 	}
@@ -109,6 +122,7 @@ func UpdateTaskStatus(id int, status TaskStatus) error {
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Status = status
+		setUpdatedDate(&tasks[taskToUpdate])
 		writeErr := db.WriteAll(tasks)
 		if writeErr != nil {
 			return writeErr
@@ -118,6 +132,10 @@ func UpdateTaskStatus(id int, status TaskStatus) error {
 	}
 
 	return db.Close()
+}
+
+func setUpdatedDate(task *Task) {
+	task.UpdatedAt = time.Now().String()
 }
 
 func DeleteTask(id int) error {
