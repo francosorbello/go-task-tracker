@@ -9,7 +9,7 @@ import (
 
 type TaskStatus int
 
-const(
+const (
 	Todo TaskStatus = iota
 	InProgress
 	Done
@@ -28,34 +28,24 @@ func StatusNameToValue(name string) TaskStatus {
 }
 
 type Task struct {
-	ID int
+	ID          int
 	Description string
-	Status TaskStatus
-	CreatedAt string
-	UpdatedAt string
+	Status      TaskStatus
+	CreatedAt   string
+	UpdatedAt   string
 }
 
 func (task Task) GetID() int {
 	return task.ID
 }
 
-func (task Task) SetID(id int) jsondatabase.Storable{
+func (task Task) SetID(id int) jsondatabase.Storable {
 	task.ID = id
 	return task
 }
 
 
-func TestRead() {
-	var db jsondatabase.Database[Task]
-	db.Open()
-	defer db.Close()
-
-	tasks := db.GetAll()
-
-	fmt.Println(tasks)
-}
-
-func AddTask(description string) Task {
+func AddTask(description string) (Task,error) {
 	var newTask Task
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -70,7 +60,7 @@ func AddTask(description string) Task {
 func findTaskIndex(id int, tasks []Task) int {
 	index := -1
 
-	for i,t := range tasks {
+	for i, t := range tasks {
 		if t.GetID() == id {
 			index = i
 			break
@@ -80,85 +70,123 @@ func findTaskIndex(id int, tasks []Task) int {
 	return index
 }
 
-func UpdateTask(id int, description string) {
+func UpdateTask(id int, description string) error {
 	var db jsondatabase.Database[Task]
 	db.Open()
 	defer db.Close()
 
-	tasks := db.GetAll()
-	
+	tasks,getErr := db.GetAll()
+	if getErr != nil {
+		return getErr
+	}
+
 	taskToUpdate := findTaskIndex(id, tasks)
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Description = description
-		db.WriteAll(tasks)
+		writeErr := db.WriteAll(tasks)
+		if writeErr != nil {
+			return writeErr
+		}
 	} else {
-		panic(fmt.Sprintf("no task with id %d available",id))
+		return fmt.Errorf("no task with id %d available", id)
 	}
+	return nil
 }
 
-func UpdateTaskStatus(id int, status TaskStatus) {
+func UpdateTaskStatus(id int, status TaskStatus) error {
 	var db jsondatabase.Database[Task]
-	db.Open()
-	defer db.Close()
+	if openErr := db.Open(); openErr != nil {
+		return openErr
+	}
 
-	tasks := db.GetAll()
-	
+	tasks,getErr := db.GetAll()
+	if getErr != nil {
+		return getErr
+	}
+
 	taskToUpdate := findTaskIndex(id, tasks)
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Status = status
-		db.WriteAll(tasks)
+		writeErr := db.WriteAll(tasks)
+		if writeErr != nil {
+			return writeErr
+		}
 	} else {
-		panic(fmt.Sprintf("no task with id %d available",id))
+		return fmt.Errorf("no task with id %d available", id)
 	}
+
+	return db.Close()
 }
 
-func DeleteTask(id int) {
+func DeleteTask(id int) error {
 	var db jsondatabase.Database[Task]
-	db.Open()
-	defer db.Close()
+	if openErr := db.Open(); openErr != nil {
+		return openErr
+	}
 
-	tasks := db.GetAll()
+	tasks, getErr := db.GetAll()
+	if getErr != nil {
+		return getErr
+	}
 
 	taskToDelete := findTaskIndex(id, tasks)
 
 	if taskToDelete != -1 {
-		tasks = slices.Delete(tasks,taskToDelete,taskToDelete+1)
+		tasks = slices.Delete(tasks, taskToDelete, taskToDelete+1)
 		if len(tasks) == 0 {
-			db.Clear()
-		}else {
-			db.WriteAll(tasks)
+			clearErr := db.Clear()
+			if clearErr != nil {
+				return clearErr
+			}
+		} else {
+			writeErr := db.WriteAll(tasks)
+			if writeErr != nil {
+				return writeErr
+			}
 		}
 	} else {
-		panic(fmt.Sprintf("no task with id %d available",id))
+		return fmt.Errorf("no task with id %d available", id)
 	}
-} 
+	return db.Close()
+}
 
-func ChangeTaskStatus(id int, newStatus TaskStatus) {
+func ChangeTaskStatus(id int, newStatus TaskStatus) error {
 	var db jsondatabase.Database[Task]
-	db.Open()
-	defer db.Close()
+	if openErr := db.Open(); openErr != nil {
+		return openErr
+	}
 
-	tasks := db.GetAll()
+	tasks, getErr := db.GetAll()
+	if getErr != nil {
+		return getErr
+	}
 
 	taskToUpdate := findTaskIndex(id, tasks)
 
 	if taskToUpdate != -1 {
 		tasks[taskToUpdate].Status = newStatus
-		db.WriteAll(tasks)
+		if writErr := db.WriteAll(tasks); writErr != nil {
+			return writErr
+		}
 	} else {
-		panic(fmt.Sprintf("no task with id %d available",id))
+		return fmt.Errorf("no task with id %d available", id)
 	}
+
+	return db.Close()
 }
 
-func ListTasks(status int) {
+func ListTasks(status int) error {
 	var db jsondatabase.Database[Task]
 	db.Open()
-	defer db.Close()
-	
-	tasks := db.GetAll()
-	for _,task := range tasks {
+
+	tasks, getErr := db.GetAll()
+	if getErr != nil {
+		return getErr
+	}
+
+	for _, task := range tasks {
 		if status == -1 {
 			fmt.Println(task)
 		} else {
@@ -167,4 +195,5 @@ func ListTasks(status int) {
 			}
 		}
 	}
+	return db.Close()
 }

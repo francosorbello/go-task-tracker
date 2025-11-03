@@ -44,7 +44,7 @@ func (com *AddCommand) Verify(args []string) error{
 }
 
 func (com *AddCommand) Execute(args []string) {
-	task := tasks.AddTask(args[0])
+	task,_ := tasks.AddTask(args[0])
 	fmt.Printf("Task added sucessfully (ID: %d)",task.ID)
 }
 
@@ -87,7 +87,7 @@ func (com *UpdateStatusCommand) Verify(args []string) error{
 		return errors.New("command data doesnt have a status entry")
 	}
 	if status > tasks.Done {
-		return errors.New(fmt.Sprintf("invalid status. Received %d, expected %s or %s",status,tasks.InProgress,tasks.Done))
+		return fmt.Errorf("invalid status. Received %d, expected %s or %s",status,tasks.InProgress,tasks.Done)
 	}
 
 	return nil		
@@ -140,6 +140,7 @@ func main() {
 
 	commName := receivedArgs[0]
 	var comm Executable
+	var err error
 	commandData := map[string]any{}
 	
 	switch commName {
@@ -165,7 +166,7 @@ func main() {
 		panic(errors.New("no command named "+commName))
 	}
 
-	err := comm.Verify(receivedArgs[1:])
+	err = comm.Verify(receivedArgs[1:])
 	if err != nil {
 		fmt.Println(err.Error())
 		return
