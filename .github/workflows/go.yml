@@ -26,7 +26,8 @@ jobs:
       run: go test -v backend/...
 
     - name: Build
-      run: go build -v .
+      run: GOOS=windows GOARCH=386 go build -o todo.exe 
+      # run: go build -v .
 
     - run: ls
       
@@ -34,5 +35,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: todo.exe
-        path: task-tracker.exe
+        path: todo.exe
         
