@@ -31,6 +31,6 @@ jobs:
     - name: Create artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: todo
-        path: out/todo.exe
+        name: todo.exe
+        path: ./task-tracker.exe
         
