@@ -28,21 +28,27 @@ jobs:
     - name: Test
       run: go test -v backend/...
 
-    - name: Build
-      run: GOOS=windows GOARCH=386 go build -o todo.exe 
-      # run: go build -v .
+    - name: Build Linux
+      run: go build -o todo-linux
 
+    - name: Build Windows
+      run: GOOS=windows GOARCH=386 go build -o todo-win.exe 
+      # run: go build -v .
+    
     - run: ls
       
     - name: Create artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: todo.exe
-        path: todo.exe
+        path: | 
+          todo-win.exe
+          todo-linux
     
     - name: Release
       if:  github.ref_type == 'tag'
       uses: softprops/action-gh-release@v2
       with:
-        files: todo.exe
+        files: |
+          todo-win.exe
+          todo-linux
         
