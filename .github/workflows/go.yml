@@ -15,7 +15,6 @@ on:
 
 jobs:
   build:
-    if:  github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -42,6 +41,7 @@ jobs:
         path: todo.exe
     
     - name: Release
+      if:  github.ref_type == 'tag'
       uses: softprops/action-gh-release@v2
       with:
         files: todo.exe
