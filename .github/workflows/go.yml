@@ -27,10 +27,12 @@ jobs:
 
     - name: Build
       run: go build -v .
+
+    - run: ls
       
     - name: Create artifacts
       uses: actions/upload-artifact@v4
       with:
         name: todo.exe
-        path: ./task-tracker.exe
+        path: task-tracker.exe
         
