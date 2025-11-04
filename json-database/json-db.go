@@ -48,7 +48,7 @@ func (db *Database[T]) Append(item T) (T,error) {
     if getErr != nil {
         return zero,getErr
     }
-	lastId := 0
+	lastId := item.GetID()
 	for _, other := range items {
 		if other.GetID() > lastId {
 			lastId = other.GetID()

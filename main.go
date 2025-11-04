@@ -66,7 +66,8 @@ func (com *UpdateCommand) Execute(args []string) error {
 		return err
 	}
 	desc := args[1]
-	return tasks.UpdateTask(taskId, desc)
+	_,err = tasks.UpdateTask(taskId, desc)
+	return err
 }
 
 type DeleteCommand Command
@@ -97,7 +98,7 @@ func (com *UpdateStatusCommand) Verify(args []string) error {
 		return errors.New("command data doesnt have a status entry")
 	}
 	if status > tasks.Done {
-		return fmt.Errorf("invalid status. Received %d, expected %s or %s", status, tasks.InProgress, tasks.Done)
+		return fmt.Errorf("invalid status. Received %d, expected %d or %d", status, tasks.InProgress, tasks.Done)
 	}
 
 	return nil
@@ -110,7 +111,8 @@ func (com *UpdateStatusCommand) Execute(args []string) error {
 	}
 	status := com.data["status"].(tasks.TaskStatus)
 
-	return tasks.UpdateTaskStatus(taskId, status)
+	_,err = tasks.UpdateTaskStatus(taskId, status)
+	return err
 }
 
 type ListCommand Command

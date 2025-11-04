@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"backend/jsondatabase"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -14,6 +15,8 @@ const (
 	InProgress
 	Done
 )
+
+const AllTasks = -1
 
 func StatusNameToValue(name string) TaskStatus {
 	switch name {
@@ -34,6 +37,8 @@ type Task struct {
 	CreatedAt   string
 	UpdatedAt   string
 }
+
+var ZeroTask = Task{ID: -1, Description: ""}
 
 func (task Task) GetID() int {
 	return task.ID
@@ -57,7 +62,36 @@ func (task Task) String() string {
 	return fmt.Sprintf("{ID: %d | description: %s | status: %s}", task.ID, task.Description, statusName)
 }
 
+var ErrNoDescriptionProvided = errors.New("no description provided")
+
+type ErrTaskNotFound struct {
+	ID int
+}
+
+func (e *ErrTaskNotFound) Error() string {
+	return fmt.Sprintf("Task with id %d not found",e.ID)
+}
+
+type ErrInvalidStatus struct {
+	receivedStatus TaskStatus
+}
+
+func (e *ErrInvalidStatus) Error() string {
+	return fmt.Sprintf("invalid status. Value must be between %d and %d but received %d instead",Todo,Done,e.receivedStatus)
+}
+
+func validateStatus(status TaskStatus) error{
+	if (status > Done) || (status < Todo) {
+		return &ErrInvalidStatus{status}
+	}
+	return nil
+}
+
 func AddTask(description string) (Task, error) {
+	if description == "" {
+		return ZeroTask,ErrNoDescriptionProvided
+	}
+
 	var newTask Task
 	var db jsondatabase.Database[Task]
 	db.Open()
@@ -82,14 +116,17 @@ func findTaskIndex(id int, tasks []Task) int {
 	return index
 }
 
-func UpdateTask(id int, description string) error {
+func UpdateTask(id int, description string) (Task,error) {
+	if description == "" {
+		return ZeroTask,ErrNoDescriptionProvided
+	}
 	var db jsondatabase.Database[Task]
 	db.Open()
 	defer db.Close()
 
 	tasks, getErr := db.GetAll()
 	if getErr != nil {
-		return getErr
+		return ZeroTask,getErr
 	}
 
 	taskToUpdate := findTaskIndex(id, tasks)
@@ -99,23 +136,29 @@ func UpdateTask(id int, description string) error {
 		setUpdatedDate(&tasks[taskToUpdate])
 		writeErr := db.WriteAll(tasks)
 		if writeErr != nil {
-			return writeErr
+			return ZeroTask,writeErr
 		}
 	} else {
-		return fmt.Errorf("no task with id %d available", id)
+		return ZeroTask,fmt.Errorf("no task with id %d available", id)
 	}
-	return nil
+	return tasks[taskToUpdate],nil
 }
 
-func UpdateTaskStatus(id int, status TaskStatus) error {
+func UpdateTaskStatus(id int, status TaskStatus) (Task,error) {
 	var db jsondatabase.Database[Task]
 	if openErr := db.Open(); openErr != nil {
-		return openErr
+		return ZeroTask,openErr
+	}
+
+	if validateErr := validateStatus(status); validateErr != nil {
+		db.Close()
+		return ZeroTask,validateErr		
 	}
 
 	tasks, getErr := db.GetAll()
 	if getErr != nil {
-		return getErr
+		db.Close()
+		return ZeroTask,getErr
 	}
 
 	taskToUpdate := findTaskIndex(id, tasks)
@@ -125,13 +168,13 @@ func UpdateTaskStatus(id int, status TaskStatus) error {
 		setUpdatedDate(&tasks[taskToUpdate])
 		writeErr := db.WriteAll(tasks)
 		if writeErr != nil {
-			return writeErr
+			return ZeroTask,writeErr
 		}
 	} else {
-		return fmt.Errorf("no task with id %d available", id)
+		return ZeroTask,fmt.Errorf("no task with id %d available", id)
 	}
 
-	return db.Close()
+	return tasks[taskToUpdate],db.Close()
 }
 
 func setUpdatedDate(task *Task) {
@@ -199,8 +242,14 @@ func ListTasks(status int) error {
 	var db jsondatabase.Database[Task]
 	db.Open()
 
+	if validateErr := validateStatus(TaskStatus(status)); status != AllTasks && validateErr != nil {
+		db.Close()
+		return validateErr		
+	}
+
 	tasks, getErr := db.GetAll()
 	if getErr != nil {
+		db.Close()
 		return getErr
 	}
 
@@ -214,4 +263,23 @@ func ListTasks(status int) error {
 		}
 	}
 	return db.Close()
+} 
+
+func GetTask(id int) (Task, error) {
+	var db jsondatabase.Database[Task]
+	db.Open()
+	defer db.Close()
+
+	tasks,err := db.GetAll()	
+	if err != nil {
+		return ZeroTask,err
+	}
+
+	for _, task := range tasks {
+		if task.ID == id {
+			return task, nil
+		}	
+	}
+
+	return ZeroTask, &ErrTaskNotFound{id}
 }
