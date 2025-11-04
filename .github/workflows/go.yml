@@ -2,16 +2,20 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
 name: Go
+permissions:
+  contents: write
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - '*'
+  
+  workflow_dispatch:
 
 jobs:
-
   build:
+    if:  github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -36,4 +40,9 @@ jobs:
       with:
         name: todo.exe
         path: todo.exe
+    
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: todo.exe
         
